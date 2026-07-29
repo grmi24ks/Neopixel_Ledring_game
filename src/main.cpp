@@ -2,11 +2,21 @@
 
   //DEFINITIONS AND DATATYPES
 
+  unsigned long previous_time = 0;
+  const unsigned long led_interval = 1000;
+  unsigned long last_debounce_time = 0;
+  const unsigned long debounce_interval = 30;
+  int stable_button_state = HIGH;
+  int previous_button_reading = HIGH; //knapp inte nedtryckt
+
   const int ledPins[] = {D2, D3, D4, D5, D6, D7, D8, D9, D10, D11};
   const int ledCount = 10;
   const int buttonPin = A0;
   int current_position = 0;
-  int target_position = 5;
+  int target_position = 4;
+  
+  static void show_hit(void);
+  static void show_miss(void);
 
   //FUNCTIONS
 
@@ -14,45 +24,109 @@
   {
     Serial.begin(9600);
     
-    pinMode(buttonPin, INPUT_PULLUP);  
+    pinMode(buttonPin, INPUT_PULLUP);  //sätter A0 som ingång och med internt motstånd, sk PULLUP
     
-    for (int i = 0; i < ledCount; i++)
+    for (int i = 0; i < ledCount; i++) //smidigt sätt att assign:a LED-lamporna till fysiska OUTPUTS och sätta dem till släckta == LOW 
       {
           pinMode(ledPins[i], OUTPUT);
           digitalWrite(ledPins[i], LOW);
       }
+
+    digitalWrite(ledPins[current_position], HIGH);  //tänd den aktuella LED-lampan
+
   }
 
+  static void show_miss(void)
+  {
+    for (int blink = 0; blink < 3; blink++)
+    {
+      for (int i = 0; i < ledCount; i++)       //öka LED nr så att nästa LED-lampa kan tändas
+      {
+        digitalWrite(ledPins[i], HIGH);
+        
+      }
+      
+      delay(100);
+
+      for (int i = 0; i < ledCount; i++)
+      {
+        digitalWrite(ledPins[i], LOW);
+       
+      }
+      delay(100);
+      
+    }
+    digitalWrite(ledPins[current_position], HIGH);  //tänd den aktuella LED-lampan
+  }
+
+static void show_hit(void)
+{
+    for (int i = 0; i < ledCount; i++)
+    {
+      digitalWrite(ledPins[i], HIGH);
+      
+    }
+    
+    delay(700);
+
+    for (int i = 0; i < ledCount; i++)
+    {
+      digitalWrite(ledPins[i], LOW);
+    }
+    digitalWrite(ledPins[current_position], HIGH);  //tänd den aktuella LED-lampan
+}
+  
   void loop(void)
   {
-    digitalWrite(ledPins[current_position], HIGH);
+    unsigned long current_time = millis();  //läs aktuell tid från mcu-start med funktionen millis. Max typ 49 dygn. 
+
+    int button_state = digitalRead(buttonPin);      //KNAPP: läs och skriv in råa värdet på knappnedtryckning (HIGH - ej nedtryckt eller LOW - neddtryckt till variabel button_state)
     
-    int button_state = digitalRead(buttonPin);
     
-    if (button_state == 0)
+
+    if (current_time - previous_time >= led_interval) //OM angiven tid för den tid en LED ska lysa har passerat...
     {
-      if (current_position == target_position)
+      previous_time = current_time;                   //uppdatera tid för senaste tändning/släckning
+      
+      digitalWrite(ledPins[current_position], LOW);   //släck current_position-LED
+
+      current_position++;     
+      
+      if (current_position >= ledCount)               //OM nuvarande lampa är max antal, börja om på position 0. Dvs. Loop:a ledlampornas tänd/släck i seriell ordning
       {
-        Serial.println("HIT!");
+        current_position = 0;
       }
-      else
-      {
-        Serial.println("MISS!");
-      }
+      digitalWrite(ledPins[current_position], HIGH);  //tänd den aktuella LED-lampan//öka LED nr så att nästa LED-lampa kan styras
     }
     
     
-    delay(500);
-
-    digitalWrite(ledPins[current_position], LOW);
-
-    current_position++;
-
-    if (current_position >= ledCount) 
+    
+    if (button_state != previous_button_reading)   //KNAPP: om knappförändring skett sedan förra loopvarvet
     {
-      current_position = 0;
+      last_debounce_time = current_time;
+    } 
+    
+    if (current_time - last_debounce_time >= debounce_interval)
+    {
+      if (button_state != stable_button_state)
+      {
+        stable_button_state = button_state;
+        if (stable_button_state == LOW)
+        {
+            if (current_position == target_position)
+            {
+              Serial.println("HIT!");
+              show_hit();
+            }
+            else
+            {
+              Serial.println("MISS!");
+              show_miss();
+            }
+        }
+      }
     }
     
-    Serial.println(digitalRead(buttonPin));
-    delay(100);
-  }
+    previous_button_reading = button_state;       //uppdatera knappläge
+   
+}
