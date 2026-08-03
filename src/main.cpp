@@ -96,7 +96,7 @@ static void handle_hit(void)
   previous_target_position = target_position;
   
   Serial.print("New target: ");
-  Serial.println(target_position);
+  Serial.println(target_position + 1);
   
   led_interval = led_interval - 50;                         //LED-vandringen blir snabbare och snabbare för varje HIT
   
