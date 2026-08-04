@@ -87,24 +87,25 @@ static void handle_hit(void)
   Serial.print("Lives remaining: ");
   Serial.println(lives);
 
-  do 
-  {
-    target_position = random(ledCount);
-  }  
-  while (target_position == previous_target_position);
-
-  previous_target_position = target_position;
-  
-  Serial.print("New target: ");
-  Serial.println(target_position);
-  
   led_interval = led_interval - 50;                         //LED-vandringen blir snabbare och snabbare för varje HIT
   
   if (led_interval == 0)
+    {
+      Serial.println("CONGRATULATIONS - YOU WON THE GAME!");
+      game_state = WON;
+    }
+  else
   {
-    Serial.println("CONGRATULATIONS - YOU WON THE GAME!");
-    game_state = WON;
+    do 
+    {
+      target_position = random(ledCount);
+    }  
+    while (target_position == previous_target_position);
+
+    Serial.print("New target: ");
+    Serial.println(target_position);
   }
+  
 }
 
 static void handle_miss(void)
