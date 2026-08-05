@@ -12,6 +12,11 @@ unsigned long animation_previous_time = 0;                //används för att be
 int animation_blink_count = 0;                            //räknar antal blink
 bool animation_leds_on = false;                           //värdet som jag använder för att växla med: animation_leds_on/!animation_leds_on
 
+unsigned long target_pulse_previous_time = 0;
+const unsigned long target_pulse_interval = 5;
+
+int target_brightness = 0;
+int target_brightness_direction = 2;
 
 const unsigned long start_led_interval = 250;
 const int start_lives = 5;
@@ -29,7 +34,7 @@ bool restart_armed = false;                               //restart "laddad" men
 const int buttonPin = A0;
 
 int current_position = 0;                                 //index för den LED som är tänd; första elementet i arrayen har index 0
-int target_position = 2;
+int target_position = 19;
 int direction = 1;                                        //1 betyder rörelse vä->hö, -1 tvärtom
 
 int score = 0;
@@ -48,21 +53,28 @@ enum GameState //gammal lösning kunde ge running = 1, game_won = 1, game_lost =
   SHOWING_HIT,
   SHOWING_MISS,
   SHOWING_WON,
+  SHOWING_LOST,
   WON,
   LOST
 };
 
 GameState game_state = PLAYING; // skapar en enum-variabel och sätter grundläget till PLAYING;
 
+static void show_playing_field();
 static void handle_hit(void);
-static void handle_miss(void);
-static void show_game_lost(void);                                 //behöver ingen animation eftersom vi bara släcker ned direkt
+static void handle_miss(unsigned long current_time);
+
+static void update_target_pulse(unsigned long current_time);                  
+
 static void start_hit_animation(unsigned long current_time);
 static void update_hit_animation(unsigned long current_time);
 static void start_miss_animation(unsigned long current_time);
 static void update_miss_animation(unsigned long current_time);
 static void start_won_animation(unsigned long current_time);
 static void update_won_animation(unsigned long current_time);
+static void start_lost_animation(unsigned long current_time);
+static void update_lost_animation(unsigned long current_time);
+
 static void reset_game(unsigned long current_time);
 
 
@@ -76,13 +88,33 @@ void setup(void)
   pinMode(buttonPin, INPUT_PULLUP);  //sätter A0 som ingång och med internt motstånd, sk PULLUP vilket knappen behöver 
   
   ring.begin();
+  show_playing_field();              //tänder upp target_position och current_position i LED-varvet
+}
+static void show_playing_field(void)
+{
   ring.clear();
+
+  ring.setPixelColor(
+      target_position,
+      ring.Color(
+        target_brightness, 
+        target_brightness * 3 / 5, 
+        0
+      )
+  );
+
+  ring.setPixelColor(
+      current_position,
+      ring.Color(0, 0, 25)
+  );
+
   ring.show();
+
 }
 
 static void handle_hit(void)
 {
-  /*int previous_target_position = target_position;*/
+  int previous_target_position = target_position;
   
   score = score + 100;
   
@@ -92,50 +124,63 @@ static void handle_hit(void)
   Serial.println(lives);
   
   if (led_interval <= 50)
-    {
-      led_interval = 0;
-      Serial.println("CONGRATULATIONS - YOU WON THE GAME!");
-      game_state = WON;
-    }
-    else
-    {
-      led_interval -=50;                    //LED-vandringen blir snabbare och snabbare för varje HIT
-
-    }
-  /*else
   {
+    led_interval = 0;
+    Serial.println("CONGRATULATIONS - YOU WON THE GAME!");
+    game_state = WON;
+  } 
+  else
+  {
+    led_interval -=50;                    //LED-vandringen blir snabbare och snabbare för varje HIT
     do 
     {
-      target_position = random(ledCount);
+      target_position = random(PIXEL_COUNT);  //byt target_position slumpmässigt för varje HIT
     }  
     while (target_position == previous_target_position);
 
-
     Serial.print("New target: ");
     Serial.println(target_position);
-  }*/
-  
+  }
 }
 
-static void handle_miss(void)
+static void handle_miss(unsigned long current_time)
 {
   lives = lives - 1;
 
   if (lives == 0) 
   {
     Serial.println("-- GAME OVER --");
-    game_state = LOST;
+    
+    start_lost_animation(current_time);
   }
   Serial.print("Lives remaining: ");
   Serial.println(lives);
   }
 
+static void update_target_pulse(unsigned long current_time)
+{
+  if (current_time - target_pulse_previous_time >= target_pulse_interval)
+  {
+    target_pulse_previous_time = current_time;
 
-static void show_game_lost(void)
-{                   
-ring.clear();           //gå igenom och släck alla LED-lampor
-ring.show();
+    target_brightness += target_brightness_direction;
+
+    if (target_brightness >=100)
+    {
+      target_brightness = 100;
+      target_brightness_direction = -2;
+    }
+
+    if (target_brightness <=0)
+    {
+      target_brightness = 0;
+      target_brightness_direction = 2;
+    }
+    show_playing_field();
+  }
 }
+
+//ANIMATION-FUNCTIONS
 
 static void start_hit_animation(unsigned long current_time)
 
@@ -153,17 +198,15 @@ static void start_hit_animation(unsigned long current_time)
   game_state = SHOWING_HIT;
 }
 
+
+
 static void update_hit_animation(unsigned long current_time)
 {
   if (current_time - animation_start_time >= hit_duration)      //om 700 ms har passerat...
   {
-    ring.clear();                                             //töm bufferten - här innebär det släck alla LED:s
-                                                
-    ring.setPixelColor(                                         //buffra pixlar, färg och ljusstyrka (OBSERVERA: här för current_position)
-        current_position, 
-        ring.Color(0, 0, 25)
-    );
-    ring.show();                                                 //visa vad som ligger i bufferten
+    show_playing_field();  
+    
+    previous_time = current_time;                               //spelpixeln får ett helt intervall innan den flyttas igen
     
     game_state = PLAYING;                                        //återgå till huvudlooop:en med dess LED-vandring och knappavläsning
   }  
@@ -217,15 +260,10 @@ static void update_miss_animation(unsigned long current_time)
     }   
     if (animation_blink_count >= 3)                                 //tre blinkningar är färdiga
     {
-      ring.clear();
-      
-      ring.setPixelColor(                                           
-          current_position, 
-          ring.Color(0, 0, 25)
-      );
-      ring.show();                                                 
-                                                        
-      previous_time = current_time;                                 //återställ huvud-timer:n så att den aktuella LED-lampan får lysa ett helt led_interval efter miss-animationen.
+      show_playing_field();  
+
+      previous_time = current_time;
+
       game_state = PLAYING;                                     
     }
   }
@@ -281,14 +319,58 @@ static void update_won_animation(unsigned long current_time)
     {
       ring.clear();
       
-      ring.setPixelColor(                                           
-          current_position, 
-          ring.Color(0, 0, 25)
-      );
       ring.show();                                                 
                                                         
       previous_time = current_time;                                 //återställ huvud-timer:n så att den aktuella LED-lampan får lysa ett helt led_interval efter miss-animationen.
       game_state = WON;                                     
+    }
+  }
+}
+
+static void start_lost_animation(unsigned long current_time)
+{
+  animation_blink_count = 0;
+  animation_leds_on = true;
+  animation_previous_time = current_time;
+
+  ring.fill(ring.Color(25, 0, 0));
+  ring.show();
+
+  game_state = SHOWING_LOST;
+}
+
+static void update_lost_animation(unsigned long current_time)
+{
+  if (current_time - animation_previous_time >= 200)                //om 200 ms har gått... (vi har en separat animationtimer)
+  {
+    animation_previous_time = current_time;                         //spara tiden för den senaste växlingen i animationen
+    animation_leds_on = !animation_leds_on;                         //du måste byta till motsatsen av dess nuvarande värde - annars sker ingen växling!!
+
+    ring.clear();
+
+    if (animation_leds_on == true)
+    {
+      for (int i = 0; i < PIXEL_COUNT; i++)                         
+      {
+        ring.setPixelColor(                                         
+            i, 
+            ring.Color(25, 0, 0)
+        );                
+      }
+    }                             
+    
+    ring.show();                                                    
+    
+    if (animation_leds_on == false)                                 //om lamporna nu är släckta
+    {
+      animation_blink_count = animation_blink_count + 1;            //öka blinkräknaren
+    }   
+    if (animation_blink_count >= 10)                                 //10 blinkningar är färdiga
+    {
+      ring.clear();
+      ring.show();
+
+      game_state = LOST;  
     }
   }
 }
@@ -300,25 +382,24 @@ static void reset_game(unsigned long current_time)
   score = 0;
   current_position = start_position;
   direction = 1;
+  
   previous_time = current_time;
 
-  ring.clear();
+  target_brightness = 0;
+  target_brightness_direction = 2;
+  target_pulse_previous_time = current_time;
 
-  ring.setPixelColor(                                          
-      current_position, 
-      ring.Color(0, 0, 25)
-  );
-  
-  ring.show();                                                 
+   show_playing_field();  
 
   game_state = PLAYING;
 }
+
 
 //HUVUDLOOP
 
 void loop(void)
 {
-  //måste ligga före de 5 kontrollerna nedan    
+  //current_time deklarationen måste ligga före kontrollerna nedan    
   unsigned long current_time = millis();                      //läs aktuell tid från mcu-start med funktionen millis. Slår om efter typ 49 dygn, tidsdiff fungerar eftersom unsigned long används.  
 
   if (game_state == WON || game_state == LOST)
@@ -370,23 +451,27 @@ void loop(void)
     return;
   }
   
+  if (game_state == SHOWING_LOST)
+  {
+    update_lost_animation(current_time);
+    return;
+  }
+
   if (game_state != PLAYING)
   {
     return;                                            //detta avslutar det aktuella loopvarvet direkt. Programmet fortsätter, ser denna state varje loop-varv och upplevs avslutad av användaren
   }
 
+  update_target_pulse(current_time);
 
 
   int button_state = digitalRead(buttonPin);        //KNAPP: läs och skriv in råa värdet på knappnedtryckning (HIGH - ej nedtryckt eller LOW - nedtryckt till variabel button_state)
   
-  
-
+  //LED-VANDRINGSLOGIK
   if (current_time - previous_time >= led_interval) //OM angiven tid för den tid en LED ska lysa har passerat...
   {
     previous_time = current_time;                   //uppdatera tid för senaste tändning/släckning
         
-    ring.clear();                                   //släck LED   
-
     current_position = current_position + direction;
     
     if (current_position >= PIXEL_COUNT)               // Om positionen passerar sista LED:n, flytta tillbaka ett steg och byt riktning
@@ -400,15 +485,12 @@ void loop(void)
     direction = 1;
     }
 
-    ring.setPixelColor(                           
-        current_position, 
-        ring.Color(0, 0, 25)
-    );  
+    show_playing_field();
 
-    ring.show();
   }
   
 
+  //KNAPP-LOGIK
   if (button_state != previous_button_reading)      //KNAPP: om knappförändring skett sedan förra loopvarvet
   {
     last_debounce_time = current_time;
@@ -432,26 +514,19 @@ void loop(void)
           }
           else
           {
-          start_hit_animation(current_time);                
+            start_hit_animation(current_time);                
           }
           
         }
         else
         {
           Serial.println("MISS!");
-          handle_miss();
+          handle_miss(current_time);
           
-          if (game_state == LOST)
-          {
-            show_game_lost();
-          }
-          else
+          if (game_state != SHOWING_LOST)
           {
             start_miss_animation(current_time);
           }
-          
-          
-          
         }
       }
     }
