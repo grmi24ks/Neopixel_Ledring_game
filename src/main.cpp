@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include "movement.h"
 
 #define DATA_PIN 5
 #define PIXEL_COUNT 24
@@ -472,18 +473,10 @@ void loop(void)
   {
     previous_time = current_time;                   //uppdatera tid för senaste tändning/släckning
         
-    current_position = current_position + direction;
-    
-    if (current_position >= PIXEL_COUNT)               // Om positionen passerar sista LED:n, flytta tillbaka ett steg och byt riktning
-    {
-    current_position = PIXEL_COUNT - 2;
-    direction = -1;
-    }
-    else if (current_position < 0)                  // Om positionen passerar första LED:n, flytta fram ett steg och byt riktning
-    {
-    current_position = 1;
-    direction = 1;
-    }
+    update_circular_position(
+      &current_position,
+      PIXEL_COUNT
+    );
 
     show_playing_field();
 
