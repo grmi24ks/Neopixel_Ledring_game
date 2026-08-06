@@ -4,6 +4,7 @@
 #ifndef HIT_TARGET_GAME_H               //if not defined kör nedanstående
 #define HIT_TARGET_GAME_H
 
-void update_hit_target_game(unsigned long current_time);
+void init_hit_target_game(void);
+void update_hit_target_game(void);
 
 #endif
