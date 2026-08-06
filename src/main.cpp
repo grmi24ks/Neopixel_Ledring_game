@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include "movement.h"
+#include "hit_target_game.h"
 
 #define DATA_PIN 5
 #define PIXEL_COUNT 24
