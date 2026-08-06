@@ -16,7 +16,7 @@ static const unsigned long debounce_interval = 30;
 
 static ButtonState buttons[BUTTON_COUNT];
 
-void init_button_input(ButtonId button, int pin)
+void init_button_input(ButtonId button, int pin)   //skriver in variabelvärden samt assign:ar pin till rätt knapp
 {
     buttons[button].pin = pin;
     buttons[button].stable_state = HIGH;
@@ -29,7 +29,7 @@ void init_button_input(ButtonId button, int pin)
     pinMode(pin, INPUT_PULLUP);
 }
 
-void update_button_input(unsigned long current_time)
+void update_button_input(unsigned long current_time)    //sker varje loopvarv: har en pressed/released event skett skriv då det
 {
   for (int i = 0; i < BUTTON_COUNT; i++)
   {
@@ -71,7 +71,7 @@ void update_button_input(unsigned long current_time)
 
 bool was_button_pressed(ButtonId button)
 {
-    return buttons[button].pressed_event;
+    return buttons[button].pressed_event;     //om true skickas värdet
 }
 
 bool was_button_released(ButtonId button)

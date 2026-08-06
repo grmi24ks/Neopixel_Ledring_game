@@ -6,5 +6,6 @@
 
 void init_hit_target_game(void);
 void update_hit_target_game(void);
+bool is_hit_target_game_finished(void);
 
 #endif

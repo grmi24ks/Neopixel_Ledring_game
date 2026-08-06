@@ -1,4 +1,4 @@
-#ifndef MOVEMENT_H
+#ifndef MOVEMENT_H //Header guard
 #define MOVEMENT_H
 
 void update_circular_position(

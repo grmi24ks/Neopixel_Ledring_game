@@ -79,20 +79,15 @@ static void reset_game(unsigned long current_time);
 
 
 
+
 //FUNCTIONS
 
 
 void init_hit_target_game(void)
 {
-  Serial.begin(9600);
-  
-  init_button_input(BUTTON_ACTION, buttonPin);
-    
-  init_neopixel_display();
-
   pixel_count = get_neopixel_count();
 
-  show_playing_field();              //tänder upp target_position och current_position i LED-varvet
+  reset_game(millis());         //återställer poäng, liv, position, hastighet, state och visar spelplanen
 }
 
 static void show_playing_field(void)
@@ -378,6 +373,11 @@ static void reset_game(unsigned long current_time)
   game_state = PLAYING;
 }
 
+bool is_hit_target_game_finished(void)
+{
+  return game_state == WON || game_state == LOST;
+}
+
 
 //HUVUDLOOP
 
@@ -385,22 +385,9 @@ void update_hit_target_game(void)
 {
   //current_time deklarationen måste ligga före kontrollerna nedan    
   unsigned long current_time = millis();                       
-
-  update_button_input(current_time);
   
   if (game_state == WON || game_state == LOST)
   {
-    if (was_button_released(BUTTON_ACTION))
-    {
-        restart_armed = true;
-    }
-
-    if (was_button_pressed(BUTTON_ACTION))
-    {
-        reset_game(current_time);
-        restart_armed = false;
-    }
-
     return;
   }
  
