@@ -72,3 +72,73 @@ void show_game_menu(int selected_game)
 
   display.display();
 }
+
+void oled_show_board(int lives, int score)
+{
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  display.print("Lives: ");
+  display.println(lives);
+  display.print("Score:");
+  display.println(score);
+  display.println("");
+  display.println("HIT TARGET!");
+
+  display.display();
+}
+
+void oled_show_miss(void)
+{
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  display.print("MISS");
+  
+  display.display();
+}
+
+void oled_show_hit(void)
+{
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  display.print("HIT!");
+  
+  display.display();
+}
+
+void oled_showing_won(void)
+{
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  display.print("YOU WON!");
+  
+  display.display();
+}
+
+void oled_showing_lost(void)
+{
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  display.print("GAME OVER!");
+  
+  display.display();
+}

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "button_input.h"
 
-struct ButtonState
+struct ButtonState            //ingen annan modul behöver veta om eller använda ButtonState - "jag kan fråga knappmodulen om en knapp tryckts"
 {
     int pin;
     int stable_state;

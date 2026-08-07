@@ -1,9 +1,10 @@
 #include <Arduino.h>
-//#include "hit_target_game.h"
+
 #include "oled_display.h"
-#include "game_selector.h"
 #include "button_input.h"
 #include "neopixel_display.h"
+
+#include "game_selector.h"
 
 void setup(void)
 {
@@ -28,6 +29,5 @@ void loop(void)
 
   update_button_input(current_time);
 
-  update_game_selector(current_time
-  );
+  update_game_selector(current_time);
 }

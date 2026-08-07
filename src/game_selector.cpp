@@ -13,14 +13,15 @@ Alla return avslutar det aktuella loopvarvet efter att rätt state har hanterats
 #include "oled_display.h"
 #include "button_input.h"
 #include "hit_target_game.h"
+#include "pendulum_game.h"
 #include "neopixel_display.h"
 
-enum AppState
+enum AppState                   //Bara game_selector.cpp behöver veta att dessa states finns
 {
-  SHOWING_GAME_MENU,
-  WAITING_FOR_MENU_RELEASE,
-  RUNNING_HIT_TARGET_GAME,
-  RUNNING_PENDULUM_GAME,
+  SHOWING_GAME_MENU,              
+  WAITING_FOR_MENU_RELEASE,       //Väntar på att spelare ska släppa ACTION
+  RUNNING_HIT_TARGET_GAME,        //Hit-target spelet äger systemet just nu
+  RUNNING_PENDULUM_GAME,          //Pendulum-spelet äger systemet just nu
 };
 
 static AppState app_state = SHOWING_GAME_MENU;
@@ -71,12 +72,13 @@ void update_game_selector(unsigned long current_time)
 
         if (selected_game == 0)
         {
-            init_hit_target_game();
-            app_state = RUNNING_HIT_TARGET_GAME;
+          init_hit_target_game();
+          app_state = RUNNING_HIT_TARGET_GAME;
         }
         else
         {
-            app_state = RUNNING_PENDULUM_GAME;
+          init_pendulum_game();  
+          app_state = RUNNING_PENDULUM_GAME;
         }
     }
 
@@ -87,7 +89,7 @@ void update_game_selector(unsigned long current_time)
   {
     update_hit_target_game();
 
-    if (is_hit_target_game_finished())
+    if (is_hit_target_game_finished())                            //om funktionen ligger i true-läge gör detta
     {
       clear_neopixel_display();
       show_neopixel_display();
@@ -100,7 +102,7 @@ void update_game_selector(unsigned long current_time)
 
   if (app_state == RUNNING_PENDULUM_GAME)
   {
-    (void)current_time;
+    update_pendulum_game();
     return;
   }
 }
